@@ -13,11 +13,18 @@
  */
 package org.elasticsearch.example.rest;
 
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.example.service.ExampleService;
 import org.elasticsearch.rest.*;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.rest.action.search.RestSearchAction;
+
+import java.io.IOException;
 
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 
@@ -29,25 +36,49 @@ public class ExamplePluginRestAction extends BaseRestHandler
     private final ExampleService service;
 
     @Inject
-    public ExamplePluginRestAction(Settings settings, RestController controller, Client client, ExampleService service) {
+    public ExamplePluginRestAction(Settings settings,
+                                   RestController controller,
+                                   Client client,
+                                   ExampleService service) {
         super(settings, controller, client);
         this.service = service;
-        controller.registerHandler(GET, "/_example", this);
-        controller.registerHandler(GET, "/_example/{query}", this);
+        controller.registerHandler(GET, "/{index}/{type}/_example", this);
+        controller.registerHandler(GET, "/{index}/_example", this);
     }
 
     @Override
     protected void handleRequest(RestRequest request, RestChannel channel, Client client) throws Exception {
 
-        String query = request.param("query");
+        SearchRequest searchRequest = RestSearchAction.parseSearchRequest(request, parseFieldMatcher);
 
-        if (query == null || query.isEmpty()) {
-            channel.sendResponse(new BytesRestResponse(RestStatus.OK, "Hey there, you didn't ask me to do anything. You are silly.\n"));
-            return;
-        }
+        client.search(searchRequest, new ActionListener<SearchResponse>() {
+            @Override
+            public void onResponse(SearchResponse searchResponse) {
 
-        logger.debug("Received request: [{}]", query);
-        String s = service.execute(query);
-        channel.sendResponse(new BytesRestResponse(RestStatus.OK, "Thank you for your service. I am: " + s));
+                SearchResponse modified = service.process(searchResponse);
+
+                try {
+                    channel.sendResponse(new BytesRestResponse(RestStatus.OK, json(modified, channel)));
+                }
+                catch (IOException e) {
+                    logger.error("Failed to process search response", e);
+                    onFailure(e);
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable throwable) {
+                channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, "Go eat a lemon."));
+            }
+        });
+    }
+
+    private XContentBuilder json(SearchResponse response, RestChannel channel) throws IOException {
+        XContentBuilder builder = channel.newBuilder();
+        builder.prettyPrint();
+        builder.startObject();
+        response.toXContent(builder, channel.request());
+        builder.endObject();
+        return builder;
     }
 }

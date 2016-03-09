@@ -13,12 +13,13 @@
  */
 package org.elasticsearch.example.service;
 
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.example.ExamplePluginConfiguration;
+import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchService;
 
 /**
@@ -39,12 +40,13 @@ public class ExampleService extends AbstractLifecycleComponent<ExampleService>
         this.searchService = searchService;
     }
 
-    public String execute(final String query) {
+    public SearchResponse process(final SearchResponse response) {
 
-        // XXX - Do something interesting here.
+        for (SearchHit hit : response.getHits()) {
+            // XXX - Do something interesting here.
+        }
 
-        ClusterState state = clusterService.state();
-        return state.getClusterName().toString();
+        return response;
     }
 
     @Override
