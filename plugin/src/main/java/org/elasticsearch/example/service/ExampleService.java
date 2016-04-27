@@ -13,14 +13,29 @@
  */
 package org.elasticsearch.example.service;
 
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.cluster.ClusterService;
+import opennlp.tools.namefind.NameFinderME;
+import opennlp.tools.namefind.TokenNameFinderModel;
+import opennlp.tools.tokenize.SimpleTokenizer;
+import opennlp.tools.tokenize.Tokenizer;
+import opennlp.tools.util.Span;
+
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.SpecialPermission;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.example.ExamplePluginConfiguration;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchService;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Simple example service to demonstrate injecting various internal core services.
@@ -28,30 +43,88 @@ import org.elasticsearch.search.SearchService;
 public class ExampleService extends AbstractLifecycleComponent<ExampleService>
 {
     private final Settings pluginSettings;
-    private final ClusterService clusterService;
-    private final SearchService searchService;
+
+    private static final String NLP_MODEL_PERSON       = "example.plugin.nlp.model.person";
+    private static final String NLP_MODEL_ORGANIZATION = "example.plugin.nlp.model.organization";
+
+    private static InputStream personStream;
+    private static InputStream organizationStream;
+
+    private static TokenNameFinderModel[] models = new TokenNameFinderModel[2];
 
     @Inject
-    public ExampleService(Settings settings, ExamplePluginConfiguration config, ClusterService clusterService,
-                          SearchService searchService) {
+    public ExampleService(Settings settings, ExamplePluginConfiguration config) {
         super(settings);
         this.pluginSettings = config.getSettings();
-        this.clusterService = clusterService;
-        this.searchService = searchService;
-    }
-
-    public SearchResponse process(final SearchResponse response) {
-
-        for (SearchHit hit : response.getHits()) {
-            // XXX - Do something interesting here.
-        }
-
-        return response;
     }
 
     @Override
     protected void doStart() {
-        logger.info("Starting example service");
+
+        logger.info("Initializing example service");
+
+        SecurityManager sm = System.getSecurityManager();
+        if (sm != null) {
+            sm.checkPermission(new SpecialPermission());
+        }
+
+        try {
+            AccessController.doPrivileged(new PrivilegedExceptionAction<Void>()
+            {
+                @Override
+                public Void run() throws Exception
+                {
+                    personStream = new FileInputStream(pluginSettings.get(NLP_MODEL_PERSON));
+                    models[0] = new TokenNameFinderModel(personStream);
+                    return null;
+                }
+            });
+        }
+        catch (PrivilegedActionException e) {
+            throw new ElasticsearchException("Unable to load NLP model: " + pluginSettings.get(NLP_MODEL_PERSON), e);
+        }
+
+        try {
+            AccessController.doPrivileged(new PrivilegedExceptionAction<Void>()
+            {
+                @Override
+                public Void run() throws Exception
+                {
+                    organizationStream = new FileInputStream(pluginSettings.get(NLP_MODEL_ORGANIZATION));
+                    models[1] = new TokenNameFinderModel(organizationStream);
+                    return null;
+                }
+            });
+        }
+        catch (PrivilegedActionException e) {
+            throw new ElasticsearchException("Unable to load NLP model: " + pluginSettings.get(NLP_MODEL_ORGANIZATION), e);
+        }
+
+        logger.info("Example service initialized and ready");
+    }
+
+    public List<Tuple<String, String[]>> analyze(List<Tuple<String, String>> pairs) {
+
+        List<Tuple<String, String[]>> results = new ArrayList<>(pairs.size());
+
+        Tokenizer tokenizer = SimpleTokenizer.INSTANCE;
+
+        for (Tuple<String, String> pair : pairs)
+        {
+            String[] tokens = tokenizer.tokenize(pair.v2());
+            List<String> entities = new ArrayList<>();
+
+            for (TokenNameFinderModel model : models)
+            {
+                NameFinderME finder = new NameFinderME(model);
+                Span[] spans = finder.find(tokens);
+                entities.addAll(Arrays.asList(Span.spansToStrings(spans, tokens)));
+            }
+
+            results.add(new Tuple<>(pair.v1(), entities.toArray(new String[entities.size()])));
+        }
+
+        return results;
     }
 
     @Override
@@ -62,5 +135,24 @@ public class ExampleService extends AbstractLifecycleComponent<ExampleService>
     @Override
     protected void doClose() {
         logger.info("Closing example service");
+
+        if (personStream != null) {
+            try {
+                personStream.close();
+            }
+            catch (IOException e) {
+                logger.error("Unable to close person stream", e);
+            }
+        }
+
+        if (organizationStream != null) {
+
+            try {
+                organizationStream.close();
+            }
+            catch (IOException e) {
+                logger.error("Unable to close organization stream", e);
+            }
+        }
     }
 }

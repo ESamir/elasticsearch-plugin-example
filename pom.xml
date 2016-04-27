@@ -22,7 +22,7 @@
         <elasticsearch.plugin.isolated>true</elasticsearch.plugin.isolated>
 
         <!-- library versions -->
-        <elasticsearch.version>2.2.0</elasticsearch.version>
+        <elasticsearch.version>2.3.1</elasticsearch.version>
     </properties>
 
     <modules>

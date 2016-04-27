@@ -1,4 +1,5 @@
 
 grant {
-    permission java.security.AllPermission;
+    permission java.io.FilePermission "/Users/andrew/src/elastic/elasticsearch-plugin-example/plugin/src/main/resources/en-ner-person.bin", "read";
+    permission java.io.FilePermission "/Users/andrew/src/elastic/elasticsearch-plugin-example/plugin/src/main/resources/en-ner-organization.bin", "read";
 };

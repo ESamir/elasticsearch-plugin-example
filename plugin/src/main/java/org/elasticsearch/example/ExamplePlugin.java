@@ -38,7 +38,7 @@ public class ExamplePlugin extends Plugin
 
     @Override
     public String description() {
-        return "";
+        return "A Simple Elasticsearch Plugin";
     }
 
     @Override
@@ -53,8 +53,7 @@ public class ExamplePlugin extends Plugin
         return services;
     }
 
-    public void onModule(RestModule module)
-    {
+    public void onModule(RestModule module) {
         module.addRestAction(ExamplePluginRestAction.class);
     }
 
@@ -64,5 +63,4 @@ public class ExamplePlugin extends Plugin
             bind(ExamplePluginConfiguration.class).asEagerSingleton();
         }
     }
-
 }

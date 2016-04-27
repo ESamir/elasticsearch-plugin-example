@@ -18,7 +18,25 @@
                     <dependencySet>
                         <useTransitiveDependencies>true</useTransitiveDependencies>
                         <excludes>
-                            <exclude>*:*</exclude>
+                            <exclude>org.elasticsearch:elasticsearch</exclude>
+                            <exclude>org.elasticsearch:securesm</exclude>
+                            <exclude>org.hdrhistogram:HdrHistogram</exclude>
+                            <exclude>com.carrotsearch:hppc</exclude>
+                            <exclude>com.fasterxml.jackson.core:jackson-core</exclude>
+                            <exclude>com.fasterxml.jackson.dataformat:jackson-dataformat-yaml</exclude>
+                            <exclude>com.fasterxml.jackson.dataformat:jackson-dataformat-cbor</exclude>
+                            <exclude>com.fasterxml.jackson.dataformat:jackson-dataformat-smile</exclude>
+                            <exclude>org.joda:joda-convert</exclude>
+                            <exclude>joda-time:joda-time</exclude>
+                            <exclude>org.apache.lucene:*</exclude>
+                            <exclude>io.netty:*</exclude>
+                            <exclude>com.tdunning:t-digest</exclude>
+                            <exclude>commons-cli:commons-cli</exclude>
+                            <exclude>com.ning:compress-lzf</exclude>
+                            <exclude>com.spatial4j:</exclude>
+                            <exclude>com.twitter:jsr166e</exclude>
+                            <exclude>org.yaml:snakeyaml</exclude>
+                            <exclude>com.google.guava:guava</exclude>
                         </excludes>
                     </dependencySet>
                 </dependencySets>
@@ -28,6 +46,16 @@
     <files>
         <file>
             <source>${project.basedir}/../plugin/src/main/resources/plugin-descriptor.properties</source>
+            <outputDirectory>/elasticsearch</outputDirectory>
+            <filtered>true</filtered>
+        </file>
+        <file>
+            <source>${project.basedir}/../plugin/src/main/resources/en-ner-organization.bin</source>
+            <outputDirectory>/elasticsearch</outputDirectory>
+            <filtered>true</filtered>
+        </file>
+        <file>
+            <source>${project.basedir}/../plugin/src/main/resources/en-ner-person.bin</source>
             <outputDirectory>/elasticsearch</outputDirectory>
             <filtered>true</filtered>
         </file>

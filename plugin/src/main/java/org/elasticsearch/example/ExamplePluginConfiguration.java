@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 /**
- *
+ * Reads configuration settings from plugin's config.yml.
  */
 public class ExamplePluginConfiguration
 {

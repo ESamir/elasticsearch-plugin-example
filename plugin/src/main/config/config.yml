@@ -1,3 +1,6 @@
 
-# you can add plugin settings here.
-example.plugin.foo: blah
+#
+# add plugin settings here
+#
+example.plugin.nlp.model.person: /Users/andrew/src/elastic/elasticsearch-plugin-example/plugin/src/main/resources/en-ner-person.bin
+example.plugin.nlp.model.organization: /Users/andrew/src/elastic/elasticsearch-plugin-example/plugin/src/main/resources/en-ner-organization.bin
